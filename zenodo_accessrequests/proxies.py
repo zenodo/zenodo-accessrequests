@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,20 +20,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-"""RBAC actions used for authorization."""
+"""Helper proxy to the state object."""
 
 from __future__ import absolute_import, print_function
 
-# TODO: Fix permission.
+from flask import current_app
+from werkzeug.local import LocalProxy
 
-from invenio.ext.principal import Action
-
-
-class cfgaccessrequests(Action):
-
-    """Access to administrate shared links and access requests."""
-
-    optional = True
-
-
-__all__ = ("cfgaccessrequests", )
+current_zenodo_accessrequests = LocalProxy(
+    lambda: current_app.extensions['zenodo-accessrequests']
+)

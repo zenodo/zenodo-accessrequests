@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -25,10 +25,7 @@
 """Zenodo module for providing access request feature."""
 
 import os
-import sys
-
 from setuptools import find_packages, setup
-from setuptools.command.test import test as TestCommand
 
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
@@ -42,6 +39,7 @@ tests_require = [
     'pytest-cov>=1.8.0',
     'pytest-pep8>=1.0.6',
     'pytest>=2.8.0',
+    'invenio-records-ui>=1.0.0a7',
 ]
 
 extras_require = {
@@ -57,56 +55,28 @@ for reqs in extras_require.values():
 
 setup_requires = [
     'Babel>=1.3',
+    'pytest-runner>=2.6.2',
 ]
 
 install_requires = [
-    'blinker',
     'Flask-BabelEx>=0.9.2',
-    'Flask-Mail',
-    'Flask-Principal',
-    'invenio-accounts>=1.0.0.dev20150000',
-    'invenio-db>=1.0.0a2',
-    'invenio-records>=1.0.0.dev20150000',
-    'itsdangerous',
-    'SQLAlchemy>=1.0.0',
-    'WTForms',
+    'Flask-Breadcrumbs>=0.3.0',
+    'SQLAlchemy>=1.0.11',
+    'WTForms>=2.0',
+    'blinker>=1.4',
+    'invenio-access>=1.0.0a7',
+    'invenio-accounts>=1.0.0a12',
+    'invenio-db>=1.0.0a9',
+    'invenio-files-rest>=1.0.0a3',
+    'invenio-mail>=1.0.0a4',
+    'invenio-pidstore>=1.0.0a7',
+    'invenio-records>=1.0.0a16',
+    'invenio-formatter>=1.0.0a2',
+    'itsdangerous>=0.24',
 ]
 
 packages = find_packages()
 
-
-class PyTest(TestCommand):
-    """PyTest Test."""
-
-    user_options = [('pytest-args=', 'a', "Arguments to pass to py.test")]
-
-    def initialize_options(self):
-        """Init pytest."""
-        TestCommand.initialize_options(self)
-        self.pytest_args = []
-        try:
-            from ConfigParser import ConfigParser
-        except ImportError:
-            from configparser import ConfigParser
-        config = ConfigParser()
-        config.read('pytest.ini')
-        self.pytest_args = config.get('pytest', 'addopts').split(' ')
-
-    def finalize_options(self):
-        """Finalize pytest."""
-        TestCommand.finalize_options(self)
-        if hasattr(self, '_test_args'):
-            self.test_suite = ''
-        else:
-            self.test_args = []
-            self.test_suite = True
-
-    def run_tests(self):
-        """Run tests."""
-        # import here, cause outside the eggs aren't loaded
-        import pytest
-        errno = pytest.main(self.pytest_args)
-        sys.exit(errno)
 
 # Get the version string. Cannot be done with import!
 g = {}
@@ -129,9 +99,24 @@ setup(
     include_package_data=True,
     platforms='any',
     entry_points={
+        'invenio_admin.views': [
+            'accessrequest_adminview = '
+            'zenodo_accessrequests.admin:accessrequest_adminview',
+            'secretlinks_adminview = '
+            'zenodo_accessrequests.admin:secretlinks_adminview',
+        ],
         'invenio_base.apps': [
             'zenodo_accessrequests = '
             'zenodo_accessrequests:ZenodoAccessRequests',
+        ],
+        'invenio_base.blueprints': [
+            'zenodo_accessrequests_requests = '
+            'zenodo_accessrequests.views.requests:blueprint',
+            'zenodo_accessrequests_settings = '
+            'zenodo_accessrequests.views.settings:blueprint',
+        ],
+        'invenio_db.models': [
+            'zenodo_accessrequests = zenodo_accessrequests.models',
         ],
         'invenio_i18n.translations': [
             'messages = zenodo_accessrequests'
@@ -157,5 +142,4 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Development Status :: 1 - Planning',
     ],
-    cmdclass={'test': PyTest},
 )

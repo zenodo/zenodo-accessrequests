@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@ from flask import current_app
 from itsdangerous import BadData, JSONWebSignatureSerializer, \
     SignatureExpired, TimedJSONWebSignatureSerializer
 
+
 # TODO: Remove dependency on current_app
 
 
@@ -44,8 +45,13 @@ class TokenMixin(object):
 
         Note random data is added to ensure that no two tokens are identical.
         """
-        return self.dumps(dict(id=obj_id, data=extra_data,
-                               rnd=binascii.hexlify(os.urandom(4))))
+        return self.dumps(
+            dict(
+                id=obj_id,
+                data=extra_data,
+                rnd=binascii.hexlify(os.urandom(4)).decode('utf-8')
+            )
+        )
 
     def validate_token(self, token, expected_data=None):
         """Validate secret link token.
@@ -77,7 +83,7 @@ class TokenMixin(object):
         """
         try:
             data = self.loads(token)
-        except SignatureExpired, e:
+        except SignatureExpired as e:
             if not force:
                 raise
             data = e.payload

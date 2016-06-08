@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,11 +33,10 @@ from flask_login import current_user, login_required
 from flask_menu import register_menu
 from jinja2 import Markup, escape, evalcontextfilter
 
+from invenio_db import db
 from flask_babelex import gettext as _
-# TODO: Fix me
-from invenio.ext.sslify import ssl_required
-from invenio_records.api import get_record
 
+from ..utils import get_record
 from ..forms import ApprovalForm, DeleteForm
 from ..helpers import QueryOrdering
 from ..models import AccessRequest, RequestStatus, SecretLink
@@ -67,7 +66,6 @@ def nl2br(eval_ctx, value):
 
 
 @blueprint.route("/", methods=['GET', 'POST'])
-@ssl_required
 @login_required
 @register_menu(
     blueprint, 'settings.sharedlinks',
@@ -96,10 +94,11 @@ def index():
             id=form.link.data).first()
         if link.revoke():
             flash(_("Shared link revoked."), category='success')
+        db.session.commit()
 
     # Links
     links = SecretLink.query_by_owner(current_user).filter(
-        SecretLink.revoked_at == None
+        SecretLink.revoked_at.is_(None)
     )
 
     # Querying
@@ -118,7 +117,7 @@ def index():
         status=RequestStatus.PENDING).order_by('created')
 
     return render_template(
-        "accessrequests/settings/index.html",
+        "zenodo_accessrequests/settings/index.html",
         links_pagination=links.paginate(page, per_page=per_page),
         requests=requests,
         query=query,
@@ -129,7 +128,6 @@ def index():
 
 
 @blueprint.route("/accessrequest/<int:request_id>/", methods=['GET', 'POST'])
-@ssl_required
 @login_required
 @register_breadcrumb(
     blueprint, 'breadcrumbs.settings.sharedlinks.accessrequest',
@@ -147,16 +145,19 @@ def accessrequest(request_id):
         if form.accept.data:
             r.accept(message=form.data['message'],
                      expires_at=form.expires_at.data)
+            db.session.commit()
             flash(_("Request accepted."))
             return redirect(url_for(".index"))
         elif form.reject.data:
             r.reject(message=form.data['message'])
+            db.session.commit()
             flash(_("Request rejected."))
             return redirect(url_for(".index"))
 
+    pid, record = get_record(r.recid)
     return render_template(
-        "accessrequests/settings/request.html",
+        "zenodo_accessrequests/settings/request.html",
         accessrequest=r,
-        record=get_record(r.recid),
+        record=record,
         form=form,
     )

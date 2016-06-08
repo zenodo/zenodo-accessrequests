@@ -38,6 +38,10 @@ env:
   - REQUIREMENTS=release
   - REQUIREMENTS=devel
 
+services:
+  - redis
+  - rabbitmq
+
 python:
   - "2.7"
   - "3.3"

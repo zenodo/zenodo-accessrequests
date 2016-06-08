@@ -1,6 +1,6 @@
 {#
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 You have submitted an access request for the following record:
 
 {{ record["title"] }}
-{{ url_for('record.metadata', recid=record['recid'], _external=True) }}
+{{ url_for('invenio_records_ui.recid', pid_value=pid.pid_value, _external=True) }}
 
 To complete the access request, please verify your email address by clicking the link below:
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 
 from __future__ import absolute_import, print_function
 
+from copy import deepcopy
 from datetime import date, datetime
 
 from flask import current_app, url_for
@@ -33,7 +34,6 @@ from invenio_db import db
 from sqlalchemy_utils.types import ChoiceType, EncryptedType
 
 from .errors import InvalidRequestStateError
-from .receivers import connect_receivers
 from .signals import link_created, link_revoked, request_accepted, \
     request_confirmed, request_created, request_rejected
 from .tokens import SecretLinkFactory
@@ -54,9 +54,9 @@ class RequestStatus(object):
 class SecretLink(db.Model):
     """Represent a secret link to a record restricted files."""
 
-    __tablename__ = 'accreqLINK'
+    __tablename__ = 'accessrequests_link'
 
-    id = db.Column(db.Integer(unsigned=True), primary_key=True,
+    id = db.Column(db.Integer, primary_key=True,
                    autoincrement=True)
     """Secret link id."""
 
@@ -66,7 +66,7 @@ class SecretLink(db.Model):
     """Secret token for link (should be stored encrypted)."""
 
     owner_user_id = db.Column(
-        db.Integer(unsigned=True), db.ForeignKey(User.id),
+        db.Integer, db.ForeignKey(User.id),
         nullable=False, default=None
     )
     """Owner's user id."""
@@ -74,7 +74,7 @@ class SecretLink(db.Model):
     owner = db.relationship(User, foreign_keys=[owner_user_id])
     """Relationship to user"""
 
-    created = db.Column(db.DateTime, nullable=False, default=datetime.now,
+    created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow,
                         index=True)
     """Creation timestamp."""
 
@@ -96,20 +96,22 @@ class SecretLink(db.Model):
         if isinstance(expires_at, date):
             expires_at = datetime.combine(expires_at, datetime.min.time())
 
-        obj = cls(
-            owner=owner,
-            title=title,
-            description=description,
-            expires_at=expires_at,
-            token="",
-        )
-        db.session.add(obj)
-        db.session.commit()
-        # Create token (dependent on obj.id and recid)
-        obj.token = SecretLinkFactory.create_token(
-            obj.id, extra_data, expires_at=expires_at
-        )
-        db.session.commit()
+        with db.session.begin_nested():
+            obj = cls(
+                owner=owner,
+                title=title,
+                description=description,
+                expires_at=expires_at,
+                token="",
+            )
+            db.session.add(obj)
+
+        with db.session.begin_nested():
+            # Create token (dependent on obj.id and recid)
+            obj.token = SecretLinkFactory.create_token(
+                obj.id, extra_data, expires_at=expires_at
+            )
+
         link_created.send(obj)
         return obj
 
@@ -134,7 +136,7 @@ class SecretLink(db.Model):
     def query_by_owner(cls, user):
         """Get secret links by user."""
         return cls.query.filter_by(
-            owner_user_id=user.get_id()
+            owner_user_id=user.id
         )
 
     @property
@@ -158,16 +160,19 @@ class SecretLink(db.Model):
 
             >>> url_for('record.metadata', token="...", recid=1, )
         """
+        copy = deepcopy(self.extra_data)
+        if 'recid' in copy:
+            copy['pid_value'] = copy.pop('recid')
         return url_for(
-            endpoint, token=self.token, _external=True, _scheme="https",
-            **(self.extra_data or {})
+            endpoint, token=self.token,
+            _external=True, **(copy or {})
         )
 
     def revoke(self):
         """Revoken a secret link."""
         if self.revoked_at is None:
-            self.revoked_at = datetime.now()
-            db.session.commit()
+            with db.session.begin_nested():
+                self.revoked_at = datetime.utcnow()
             link_revoked.send(self)
             return True
         return False
@@ -175,7 +180,7 @@ class SecretLink(db.Model):
     def is_expired(self):
         """Determine if link is expired."""
         if self.expires_at:
-            return datetime.now() > self.expires_at
+            return datetime.utcnow() > self.expires_at
         return False
 
     def is_revoked(self):
@@ -190,7 +195,7 @@ class SecretLink(db.Model):
 class AccessRequest(db.Model):
     """Represent an request for access to restricted files in a record."""
 
-    __tablename__ = 'accreqREQUEST'
+    __tablename__ = 'accessrequests_request'
 
     STATUS_CODES = {
         RequestStatus.EMAIL_VALIDATION: _(u'Email validation'),
@@ -199,7 +204,7 @@ class AccessRequest(db.Model):
         RequestStatus.REJECTED: _(u'Rejected'),
     }
 
-    id = db.Column(db.Integer(unsigned=True), primary_key=True,
+    id = db.Column(db.Integer, primary_key=True,
                    autoincrement=True)
     """Access request ID."""
 
@@ -210,7 +215,7 @@ class AccessRequest(db.Model):
     """Status of request."""
 
     receiver_user_id = db.Column(
-        db.Integer(unsigned=True), db.ForeignKey(User.id),
+        db.Integer, db.ForeignKey(User.id),
         nullable=False, default=None
     )
     """Receiver's user id."""
@@ -219,7 +224,7 @@ class AccessRequest(db.Model):
     """Relationship to user"""
 
     sender_user_id = db.Column(
-        db.Integer(unsigned=True), db.ForeignKey(User.id),
+        db.Integer, db.ForeignKey(User.id),
         nullable=True, default=None
     )
     """Sender's user id (for authenticated users)."""
@@ -235,15 +240,15 @@ class AccessRequest(db.Model):
                              default='')
     """Sender's email address."""
 
-    recid = db.Column(db.Integer(unsigned=True), nullable=False, index=True)
+    recid = db.Column(db.Integer, nullable=False, index=True)
     """Record concerned for the request."""
 
-    created = db.Column(db.DateTime, nullable=False, default=datetime.now,
+    created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow,
                         index=True)
     """Creation timestamp."""
 
-    modified = db.Column(db.DateTime, nullable=False, default=datetime.now,
-                         onupdate=datetime.now)
+    modified = db.Column(db.DateTime, nullable=False, default=datetime.utcnow,
+                         onupdate=datetime.utcnow)
     """Last modification timestamp."""
 
     justification = db.Column(db.Text, default='', nullable=False)
@@ -253,7 +258,7 @@ class AccessRequest(db.Model):
     """Receivers message to the sender."""
 
     link_id = db.Column(
-        db.Integer(unsigned=True), db.ForeignKey(SecretLink.id),
+        db.Integer, db.ForeignKey(SecretLink.id),
         nullable=True, default=None
     )
     """Relation to secret link if request was accepted."""
@@ -273,7 +278,7 @@ class AccessRequest(db.Model):
         :param justification: Justification message (required).
         :param sender: User object of sender (optional).
         """
-        sender_user_id = None if sender is None else sender.get_id()
+        sender_user_id = None if sender is None else sender.id
 
         assert recid
         assert receiver
@@ -283,22 +288,22 @@ class AccessRequest(db.Model):
 
         # Determine status
         status = RequestStatus.EMAIL_VALIDATION
-        if sender and sender.is_confirmed():
+        if sender and sender.confirmed_at:
             status = RequestStatus.PENDING
 
-        # Create object
-        obj = cls(
-            status=status,
-            recid=recid,
-            receiver_user_id=receiver.get_id(),
-            sender_user_id=sender_user_id,
-            sender_full_name=sender_full_name,
-            sender_email=sender_email,
-            justification=justification
-        )
+        with db.session.begin_nested():
+            # Create object
+            obj = cls(
+                status=status,
+                recid=recid,
+                receiver_user_id=receiver.id,
+                sender_user_id=sender_user_id,
+                sender_full_name=sender_full_name,
+                sender_email=sender_email,
+                justification=justification
+            )
 
-        db.session.add(obj)
-        db.session.commit()
+            db.session.add(obj)
 
         # Send signal
         if obj.status == RequestStatus.EMAIL_VALIDATION:
@@ -311,7 +316,7 @@ class AccessRequest(db.Model):
     def query_by_receiver(cls, user):
         """Get access requests for a specific receiver."""
         return cls.query.filter_by(
-            receiver_user_id=user.get_id()
+            receiver_user_id=user.id
         )
 
     @classmethod
@@ -319,31 +324,32 @@ class AccessRequest(db.Model):
         """Get access request for a specific receiver."""
         return cls.query.filter_by(
             id=request_id,
-            receiver_user_id=user.get_id()
+            receiver_user_id=user.id
         ).first()
 
     def confirm_email(self):
         """Confirm that senders email is valid."""
-        if self.status != RequestStatus.EMAIL_VALIDATION:
-            raise InvalidRequestStateError(RequestStatus.EMAIL_VALIDATION)
-        self.status = RequestStatus.PENDING
-        db.session.commit()
+        with db.session.begin_nested():
+            if self.status != RequestStatus.EMAIL_VALIDATION:
+                raise InvalidRequestStateError(RequestStatus.EMAIL_VALIDATION)
+
+            self.status = RequestStatus.PENDING
         request_confirmed.send(self)
 
     def accept(self, message=None, expires_at=None):
         """Accept request."""
-        if self.status != RequestStatus.PENDING:
-            raise InvalidRequestStateError(RequestStatus.PENDING)
-        self.status = RequestStatus.ACCEPTED
-        db.session.commit()
+        with db.session.begin_nested():
+            if self.status != RequestStatus.PENDING:
+                raise InvalidRequestStateError(RequestStatus.PENDING)
+            self.status = RequestStatus.ACCEPTED
         request_accepted.send(self, message=message, expires_at=expires_at)
 
     def reject(self, message=None):
         """Reject request."""
-        if self.status != RequestStatus.PENDING:
-            raise InvalidRequestStateError(RequestStatus.PENDING)
-        self.status = RequestStatus.REJECTED
-        db.session.commit()
+        with db.session.begin_nested():
+            if self.status != RequestStatus.PENDING:
+                raise InvalidRequestStateError(RequestStatus.PENDING)
+            self.status = RequestStatus.REJECTED
         request_rejected.send(self, message=message)
 
     def create_secret_link(self, title, description=None, expires_at=None):
@@ -355,11 +361,4 @@ class AccessRequest(db.Model):
             description=description,
             expires_at=expires_at,
         )
-        db.session.commit()
         return self.link
-
-
-#
-# Connect signals with receivers
-# TODO: Move to Extension.
-connect_receivers()

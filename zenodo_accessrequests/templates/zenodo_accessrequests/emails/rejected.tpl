@@ -1,6 +1,6 @@
 {#
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,6 +26,6 @@ Message from owner:
 
 Record:
 {{ record["title"] }}
-{{ url_for('record.metadata', recid=record['recid'], _external=True) }}
+{{ url_for('invenio_records_ui.recid', pid_value=pid.pid_value, _external=True) }}
 
-The decision to reject the request is solely under the responsibility of the record owner. Hence, please note that {{config.CFG_SITE_NAME}} staff are not involved in this decision.
+The decision to reject the request is solely under the responsibility of the record owner. Hence, please note that {{config.THEME_SITENAME}} staff are not involved in this decision.

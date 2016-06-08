@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,76 +24,21 @@
 
 from __future__ import absolute_import, print_function
 
-from invenio.testsuite import InvenioTestCase
-from invenio_db import db
+from flask import current_app
+
+from zenodo_accessrequests.models import AccessRequest
 
 
-class BaseTestCase(InvenioTestCase):
-    """Access request base test case."""
-
-    def setUp(self):
-        """Setup needed related models."""
-        from zenodo.modules.accessrequests.models import AccessRequest, \
-            SecretLink
-        from invenio.modules.accounts.models import User
-
-        AccessRequest.query.delete()
-        SecretLink.query.delete()
-        User.query.filter_by(nickname='sender').delete()
-        User.query.filter_by(nickname='receiver').delete()
-
-        self.sender = User(
-            nickname="sender",
-            family_name="sender",
-            given_names="a",
-            password="sender",
-            note="1",
-
-        )
-        self.receiver = User(
-            nickname="receiver",
-            family_name="receiver",
-            given_names="a",
-            password="receiver",
-            note="1"
-        )
-
-        db.session.add(self.sender)
-        db.session.add(self.receiver)
-        db.session.commit()
-
-        self.called = dict()
-
-    def tearDown(self):
-        """Clear db session."""
-        db.session.expunge_all()
-
-    def get_receiver(self, name):
-        """Create a signal receiver.
-
-        Asserting that the receiver has been called can be done with::
-
-            self.called[name]
-
-        The value of above attribute will contain the latest arguments that
-        the receiver was called with.
-        """
-        self.called[name] = None
-
-        def _receiver(*args, **kwargs):
-            self.called[name] = dict(args=args, kwargs=kwargs)
-
-        return _receiver
-
-    def get_request(self, confirmed=False):
-        """Create an access request."""
-        from zenodo.modules.accessrequests.models import AccessRequest
-
-        return AccessRequest.create(
-            recid=1,
-            receiver=self.receiver,
-            sender_full_name="Another Name",
-            sender_email="anotheremail@example.org",
-            sender=self.sender if confirmed else None,
-            justification="Bla bla bla",
-        )
+def create_access_request(pid_value, users, confirmed):
+    """Access Request."""
+    datastore = current_app.extensions['security'].datastore
+    receiver = datastore.get_user(users['receiver']['id'])
+    sender = datastore.get_user(users['sender']['id'])
+    return AccessRequest.create(
+        recid=pid_value,
+        receiver=receiver,
+        sender_full_name="Another Name",
+        sender_email="anotheremail@example.org",
+        sender=sender if confirmed else None,
+        justification="Bla bla bla",
+    )

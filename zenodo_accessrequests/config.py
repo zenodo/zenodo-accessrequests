@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,6 +24,20 @@
 
 from __future__ import absolute_import, print_function
 
-
 ACCESSREQUESTS_CONFIRMLINK_EXPIRES_IN = 5*24*60*60
 """Number of seconds after the email confirmation link expires."""
+
+ACCESSREQUESTS_RECORDS_UI_ENDPOINTS = dict(
+    recid_access_request=dict(
+        pid_type='recid',
+        route='/record/<pid_value>/accessrequest',
+        template='zenodo_accessrequests/access_request.html',
+        view_imp='zenodo_accessrequests.views.requests.access_request',
+        methods=['GET', 'POST'],
+    ),
+    recid_access_request_email_confirm=dict(
+        pid_type='recid',
+        route='/record/<pid_value>/accessrequest/<token>/confirm',
+        view_imp='zenodo_accessrequests.views.requests.confirm',
+    ),
+)

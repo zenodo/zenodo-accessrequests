@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2016 CERN.
 #
 # Zenodo is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -21,11 +21,21 @@
 # In applying this license, CERN does not
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
-#
--e git+git://github.com/inveniosoftware/invenio-access.git#egg=invenio-access
--e git+git://github.com/inveniosoftware/invenio-accounts.git#egg=invenio-accounts
--e git+git://github.com/inveniosoftware/invenio-db.git#egg=invenio-db
--e git+git://github.com/inveniosoftware/invenio-files-rest.git#egg=invenio-files-rest
--e git+git://github.com/inveniosoftware/invenio-mail.git#egg=invenio-mail
--e git+git://github.com/inveniosoftware/invenio-pidstore.git#egg=invenio-pidstore
--e git+git://github.com/inveniosoftware/invenio-records.git#egg=invenio-records
+
+"""Utils."""
+
+from __future__ import absolute_import, print_function
+
+from functools import partial
+
+from invenio_pidstore.resolver import Resolver
+from invenio_records.api import Record
+
+resolver = Resolver(pid_type='recid', object_type='rec',
+                    getter=partial(Record.get_record, with_deleted=True))
+"""Get a record resolver."""
+
+
+def get_record(recid):
+    """Get record."""
+    return resolver.resolve(str(recid))

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,17 +26,17 @@ from __future__ import absolute_import, print_function
 
 from datetime import timedelta
 
-from flask import render_template, url_for, current_app
-
+from flask import current_app, render_template, url_for
 from flask_babelex import gettext as _
 from flask_mail import Message
-# TODO Invenio-Records
-from invenio.modules.records.api import get_record
+from invenio_mail.tasks import send_email
 
 from .errors import RecordNotFound
-from .signals import request_created, request_confirmed, request_accepted, \
+from .signals import request_accepted, request_confirmed, request_created, \
     request_rejected
 from .tokens import EmailConfirmationSerializer
+from .utils import get_record
+
 
 # TODO: Change configuration variable names.
 
@@ -53,14 +53,15 @@ def connect_receivers():
 
 def create_secret_link(request, message=None, expires_at=None):
     """Receiver for request-accepted signal."""
-    record = get_record(request.recid)
+    pid, record = get_record(request.recid)
     if not record:
         raise RecordNotFound(request.recid)
 
     description = render_template(
-        "accessrequests/link_description.tpl",
+        "zenodo_accessrequests/link_description.tpl",
         request=request,
         record=record,
+        pid=pid,
         expires_at=expires_at,
         message=message,
     )
@@ -74,13 +75,15 @@ def create_secret_link(request, message=None, expires_at=None):
 
 def send_accept_notification(request, message=None, expires_at=None):
     """Receiver for request-accepted signal to send email notification."""
+    pid, record = get_record(request.recid)
     _send_notification(
         request.sender_email,
         _("Access request accepted"),
-        "accessrequests/emails/accepted.tpl",
+        "zenodo_accessrequests/emails/accepted.tpl",
         request=request,
-        record=get_record(request.recid),
-        record_link=request.link.get_absolute_url('record.metadata'),
+        record=record,
+        pid=pid,
+        record_link=request.link.get_absolute_url('invenio_records_ui.recid'),
         message=message,
         expires_at=expires_at,
     )
@@ -88,7 +91,7 @@ def send_accept_notification(request, message=None, expires_at=None):
 
 def send_confirmed_notifications(request):
     """Receiver for request-confirmed signal to send email notification."""
-    record = get_record(request.recid)
+    pid, record = get_record(request.recid)
     if record is None:
         current_app.logger.error("Cannot retrieve record %s. Emails not sent"
                                  % request.recid)
@@ -98,17 +101,19 @@ def send_confirmed_notifications(request):
     _send_notification(
         request.receiver.email,
         title,
-        "accessrequests/emails/new_request.tpl",
+        "zenodo_accessrequests/emails/new_request.tpl",
         request=request,
         record=record,
+        pid=pid,
     )
 
     _send_notification(
         request.sender_email,
         title,
-        "accessrequests/emails/confirmation.tpl",
+        "zenodo_accessrequests/emails/confirmation.tpl",
         request=request,
         record=record,
+        pid=pid,
     )
 
 
@@ -117,34 +122,37 @@ def send_email_validation(request):
     token = EmailConfirmationSerializer().create_token(
         request.id, dict(email=request.sender_email)
     )
+    pid, record = get_record(request.recid)
 
     _send_notification(
         request.sender_email,
         _("Access request verification"),
-        "accessrequests/emails/validate_email.tpl",
+        "zenodo_accessrequests/emails/validate_email.tpl",
         request=request,
-        record=get_record(request.recid),
+        record=record,
+        pid=pid,
         days=timedelta(
             seconds=current_app.config["ACCESSREQUESTS_CONFIRMLINK_EXPIRES_IN"]
         ).days,
         confirm_link=url_for(
-            "zenodo_accessrequests.confirm",
-            recid=request.recid,
+            "invenio_records_ui.recid_access_request_email_confirm",
+            pid_value=request.recid,
             token=token,
             _external=True,
-            _scheme="https",
         )
     )
 
 
 def send_reject_notification(request, message=None):
     """Receiver for request-rejected signal to send email notification."""
+    pid, record = get_record(request.recid)
     _send_notification(
         request.sender_email,
         _("Access request rejected"),
-        "accessrequests/emails/rejected.tpl",
+        "zenodo_accessrequests/emails/rejected.tpl",
         request=request,
-        record=get_record(request.recid),
+        record=record,
+        pid=pid,
         message=message,
     )
 
@@ -153,12 +161,9 @@ def _send_notification(to, subject, template, **ctx):
     """Render a template and send as email."""
     msg = Message(
         subject,
-        sender=current_app.config.get('CFG_SITE_SUPPORT_EMAIL'),
+        sender=current_app.config.get('SUPPORT_EMAIL'),
         recipients=[to]
     )
     msg.body = render_template(template, **ctx)
 
-    mail = current_app.extensions.get('mail')
-    mail.send(msg)
-
-    # Send email via celery task
+    send_email.delay(msg.__dict__)

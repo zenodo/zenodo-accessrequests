@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -27,10 +27,11 @@
 
 from __future__ import absolute_import, print_function
 
-from flask import Flask
-from flask_babelex import Babel
+from flask import Flask, session, url_for
+from mock import patch
 
 from zenodo_accessrequests import ZenodoAccessRequests
+from zenodo_accessrequests.models import SecretLink
 
 
 def test_version():
@@ -52,11 +53,20 @@ def test_init():
     assert 'zenodo-accessrequests' in app.extensions
 
 
-def test_view(app):
+def test_view(app, db, users, record_example):
     """Test view."""
-    Babel(app)
-    ZenodoAccessRequests(app)
+    pid_value, record = record_example
     with app.test_client() as client:
-        res = client.get("/")
+        res = client.get(url_for(
+            'invenio_records_ui.recid_access_request', pid_value=pid_value))
         assert res.status_code == 200
-        assert 'Welcome to Zenodo-AccessRequests' in str(res.data)
+
+
+def test_token_are_saved_in_session(app, db, users, record_example):
+    """Test view."""
+    pid_value, record = record_example
+    with app.test_client() as client:
+        with patch.object(SecretLink,
+                          'validate_token', return_value=True):
+            client.get("/", query_string=dict(token='123'))
+            assert session['accessrequests-secret-token'] == '123'

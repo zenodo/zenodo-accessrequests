@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+"""Upgrade."""
 
 from sqlalchemy import *
 from invenio.ext.sqlalchemy import db
@@ -29,10 +30,12 @@ depends_on = []
 
 
 def info():
+    """."""
     return "Create accessrequests tables."
 
 
 def do_upgrade():
+    """."""
     op.create_table(
         'accreqREQUEST',
         db.Column('id', db.Integer(display_width=15), nullable=False),

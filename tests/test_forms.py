@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,68 +24,58 @@
 
 from __future__ import absolute_import, print_function
 
-from datetime import date, timedelta
+from datetime import datetime, timedelta
 
-from invenio.testsuite import InvenioTestCase
-
-
-class AccessRequestFormTestCase(InvenioTestCase):
-    """Test access request form."""
-
-    def test_validation(self):
-        """Test validation."""
-        from ..forms import AccessRequestForm
-
-        assert not AccessRequestForm(
-            full_name="  ", email="   ", justification="  ").validate()
-        assert not AccessRequestForm(
-            full_name="Test", email="", justification="").validate()
-        assert not AccessRequestForm(
-            full_name="Test", email="info", justification="").validate()
-        assert not AccessRequestForm(
-            full_name="Test", email="info", justification="info").validate()
-        assert AccessRequestForm(
-            full_name="Test", email="info@invenio-software.org",
-            justification="info").validate()
+from zenodo_accessrequests.forms import AccessRequestForm, ApprovalForm
 
 
-class ApprovalFormTestCase(InvenioTestCase):
-    """Test approval form."""
+def test_validation_form_accessrequest(app):
+    """Test validation."""
+    assert not AccessRequestForm(
+        full_name="  ", email="   ", justification="  ").validate()
+    assert not AccessRequestForm(
+        full_name="Test", email="", justification="").validate()
+    assert not AccessRequestForm(
+        full_name="Test", email="info", justification="").validate()
+    assert not AccessRequestForm(
+        full_name="Test", email="info", justification="info").validate()
+    assert AccessRequestForm(
+        full_name="Test", email="info@invenio-software.org",
+        justification="info").validate()
 
-    def test_validation(self):
-        """Test validation."""
-        from ..forms import ApprovalForm
 
-        today = date.today()
-        yesterday = date.today()+timedelta(days=-1)
-        tomorrow = date.today()+timedelta(days=1)
-        oneyear = date.today()+timedelta(days=365)
-        oneyearoneday = date.today()+timedelta(days=366)
+def test_validation_form_approval(app):
+    """Test validation."""
+    today = datetime.utcnow().date()
+    yesterday = datetime.utcnow().date()+timedelta(days=-1)
+    tomorrow = datetime.utcnow().date()+timedelta(days=1)
+    oneyear = datetime.utcnow().date()+timedelta(days=365)
+    oneyearoneday = datetime.utcnow().date()+timedelta(days=366)
 
-        assert not ApprovalForm(
-            message="", expires_at="", accept=True).validate()
-        assert not ApprovalForm(
-            message="", expires_at="", reject=True).validate()
-        assert not ApprovalForm(
-            message="test", expires_at=tomorrow, accept=True, reject=True
-        ).validate()
+    assert not ApprovalForm(
+        message="", expires_at="", accept=True).validate()
+    assert not ApprovalForm(
+        message="", expires_at="", reject=True).validate()
+    assert not ApprovalForm(
+        message="test", expires_at=tomorrow, accept=True, reject=True
+    ).validate()
 
-        # Accept + date validation
-        assert ApprovalForm(
-            message="", expires_at=tomorrow, accept=True).validate()
-        assert ApprovalForm(
-            message="", expires_at=oneyear, accept=True).validate()
-        assert not ApprovalForm(
-            message="", expires_at=today, accept=True).validate()
-        assert not ApprovalForm(
-            message="", expires_at=yesterday, accept=True).validate()
-        assert not ApprovalForm(
-            message="", expires_at=oneyearoneday, accept=True).validate()
+    # Accept + date validation
+    assert ApprovalForm(
+        message="", expires_at=tomorrow, accept=True).validate()
+    assert ApprovalForm(
+        message="", expires_at=oneyear, accept=True).validate()
+    assert not ApprovalForm(
+        message="", expires_at=today, accept=True).validate()
+    assert not ApprovalForm(
+        message="", expires_at=yesterday, accept=True).validate()
+    assert not ApprovalForm(
+        message="", expires_at=oneyearoneday, accept=True).validate()
 
-        # Reject + message
-        assert ApprovalForm(
-            message="a message", expires_at="", reject=True).validate()
-        assert not ApprovalForm(
-            message="", expires_at="", reject=True).validate()
-        assert not ApprovalForm(
-            message="      ", expires_at="", reject=True).validate()
+    # Reject + message
+    assert ApprovalForm(
+        message="a message", expires_at="", reject=True).validate()
+    assert not ApprovalForm(
+        message="", expires_at="", reject=True).validate()
+    assert not ApprovalForm(
+        message="      ", expires_at="", reject=True).validate()

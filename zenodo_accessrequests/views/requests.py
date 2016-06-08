@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,24 +24,18 @@
 
 from __future__ import absolute_import, print_function
 
-from datetime import date
-
+from datetime import datetime
 from flask import Blueprint, abort, current_app, flash, redirect, \
-    render_template, request, send_file, url_for
+    render_template, request, url_for
 from flask_login import current_user
 
 from flask_babelex import gettext as _
 
-# TODO: Fix me
-from invenio.ext.sslify import ssl_required
-from invenio.legacy.bibdocfile.api import BibRecDocs, InvenioBibDocFileError
-from invenio_accounts.models import User
-from invenio_records.api import get_record
-# TODO: Fix me
-from invenio.modules.records.views import request_record
+from werkzeug.local import LocalProxy
+from invenio_db import db
 
 from ..forms import AccessRequestForm
-from ..models import AccessRequest, RequestStatus, SecretLink
+from ..models import AccessRequest, RequestStatus
 from ..tokens import EmailConfirmationSerializer
 
 blueprint = Blueprint(
@@ -52,17 +46,6 @@ blueprint = Blueprint(
     template_folder="../templates",
 )
 
-#
-# Helpers
-#
-
-
-def get_bibdocfile(bibarchive, filename):
-    """Get BibDocFile for."""
-    for f in bibarchive.list_latest_files():
-        if not f.is_icon() and f.get_full_name() == filename:
-            return f
-    return None
 
 #
 # Template filters
@@ -74,7 +57,7 @@ def is_restricted(record):
     """Template filter to check if a record is restricted."""
     return record.get('access_right') == 'restricted' and \
         record.get('access_conditions') and \
-        record.get('owner', {}).get('id')
+        record.get('owners', [])
 
 
 @blueprint.app_template_filter()
@@ -82,7 +65,7 @@ def is_embargoed(record):
     """Template filter to check if a record is embargoed."""
     return record.get('access_right') == 'embargoed' and \
         record.get('embargo_date') and \
-        record.get('embargo_date') > date.today()
+        record.get('embargo_date') > datetime.utcnow().date()
 
 
 @blueprint.app_template_filter()
@@ -95,12 +78,11 @@ def is_removed(record):
 #
 
 
-@blueprint.route('/<int:recid>/accessrequest', methods=['GET', 'POST'])
-@ssl_required
-@request_record
-def access_request(recid=None):
+def access_request(pid, record, template):
     """Create an access request."""
-    record = get_record(recid)
+    recid = int(pid.pid_value)
+    datastore = LocalProxy(
+        lambda: current_app.extensions['security'].datastore)
 
     # Record must be in restricted access mode.
     if record.get('access_right') != 'restricted' or \
@@ -108,22 +90,23 @@ def access_request(recid=None):
         abort(404)
 
     # Record must have an owner and owner must still exists.
-    try:
-        record_owner = User.query.get_or_404(record['owner']['id'])
-    except KeyError:
+    owners = record.get('owners', [])
+    record_owners = filter(
+        None,
+        [datastore.find_user(id=owner_id) for owner_id in owners]
+    )
+    if not record_owners:
         abort(404)
 
     sender = None
     initialdata = dict()
 
     # Prepare initial form data
-    if current_user.is_authenticated():
+    if current_user.is_authenticated:
         sender = current_user
-        initialdata = dict(
-            # FIXME: add full_name attribute to user accounts.
-            full_name=" ".join([sender["family_name"], sender["given_names"]]),
-            email=sender["email"],
-        )
+        initialdata['email'] = current_user.email
+        if current_user.profile:
+            initialdata['full_name'] = current_user.profile.full_name
 
     # Normal form validation
     form = AccessRequestForm(formdata=request.form, **initialdata)
@@ -131,12 +114,13 @@ def access_request(recid=None):
     if form.validate_on_submit():
         accreq = AccessRequest.create(
             recid=recid,
-            receiver=record_owner,
+            receiver=record_owners[0],
             sender_full_name=form.data['full_name'],
             sender_email=form.data['email'],
             justification=form.data['justification'],
             sender=sender
         )
+        db.session.commit()
 
         if accreq.status == RequestStatus.EMAIL_VALIDATION:
             flash(_(
@@ -146,26 +130,27 @@ def access_request(recid=None):
                 category='info')
         else:
             flash(_("Access request submitted."), category='info')
-        return redirect(url_for("record.metadata", recid=recid))
+        return redirect(url_for('invenio_records_ui.recid', pid_value=recid))
 
     return render_template(
-        'accessrequests/access_request.html',
+        template,
         record=record,
         form=form,
+        owners=record_owners,
     )
 
 
-@blueprint.route('/<int:recid>/accessrequest/<token>/confirm/',
-                 methods=['GET', ])
-@ssl_required
-@request_record
-def confirm(recid=None, token=None):
+def confirm(pid, record, template):
     """Confirm email address."""
+    recid = int(pid.pid_value)
+
+    token = request.view_args['token']
+
     # Validate token
     data = EmailConfirmationSerializer().validate_token(token)
     if data is None:
         flash(_("Invalid confirmation link."), category='danger')
-        return redirect(url_for("record.metadata", recid=recid))
+        return redirect(url_for("invenio_records_ui.recid", pid_value=recid))
 
     # Validate request exists.
     r = AccessRequest.query.get(data['id'])
@@ -177,39 +162,7 @@ def confirm(recid=None, token=None):
         abort(404)
 
     r.confirm_email()
+    db.session.commit()
     flash(_("Email validated and access request submitted."), category='info')
 
-    return redirect(url_for("record.metadata", recid=recid))
-
-
-@blueprint.route('/<int:recid>/restrictedfiles/<path:filename>',
-                 methods=['GET'])
-@ssl_required
-@request_record
-def file(recid=None, filename=None):
-    """Serve restricted file for record using provided token.
-
-    This is a simple reimplementation of legacy bibdocfile file serving. Only
-    the latest version of a file can be served.
-
-    Note a generated link is independent of
-    """
-    if not SecretLink.validate_token(request.args.get('token'),
-                                     dict(recid=recid)):
-        return abort(404)
-
-    try:
-        bibarchive = BibRecDocs(recid)
-    except InvenioBibDocFileError:
-        current_app.logger.warning("File not found.", exc_info=True)
-        abort(404)
-
-    if bibarchive.deleted_p():
-        abort(410)
-
-    f = get_bibdocfile(bibarchive, filename)
-
-    if f is None:
-        abort(404)
-
-    return send_file(f.get_path())
+    return redirect(url_for("invenio_records_ui.recid", pid_value=recid))

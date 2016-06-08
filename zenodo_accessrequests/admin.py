@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,26 +25,18 @@
 
 from __future__ import absolute_import, print_function
 
+from flask_admin.contrib.sqla import ModelView
 from flask_babelex import gettext as _
-# TODO: Fix admin import.
-from flask_admin import ModelView
-from invenio_db import db
 
 from .models import AccessRequest, SecretLink
 
-# TODO: Fix up admin classes.
 
-
-class AcceessRequestAdmin(ModelView):
+class AccessRequestAdmin(ModelView):
     """Access requests admin view."""
 
-    _can_create = False
-    _can_edit = True
-    _can_delete = True
-
-    acc_view_action = 'cfgaccessrequests'
-    acc_edit_action = 'cfgaccessrequests'
-    acc_delete_action = 'cfgaccessrequests'
+    can_create = False
+    can_edit = True
+    can_delete = True
 
     column_list = (
         'status', 'recid', 'sender_email', 'receiver', 'created', 'modified',
@@ -68,12 +60,13 @@ class SecretLinkAdmin(ModelView):
     )
 
 
-def register_admin(app, admin):
-    """Called on app initialization to register administration interface."""
-    category = _('Shared links')
-
-    admin.add_view(AcceessRequestAdmin(
-        AccessRequest, db.session,
-        name='Access requests', category=category))
-    admin.add_view(SecretLinkAdmin(
-        SecretLink, db.session, name="Shared links", category=category))
+accessrequest_adminview = dict(
+    modelview=AccessRequestAdmin,
+    model=AccessRequest,
+    category=_('Shared links')
+)
+secretlinks_adminview = dict(
+    modelview=SecretLinkAdmin,
+    model=SecretLink,
+    category=_('Shared links')
+)

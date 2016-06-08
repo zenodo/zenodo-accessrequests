@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,83 +24,51 @@
 
 from __future__ import absolute_import, print_function
 
-from flask_email.backends import locmem as mail
+import pytest
+from helpers import create_access_request
+from invenio_pidstore.errors import PIDDoesNotExistError
 from mock import patch
 
-from invenio.base.globals import cfg
+from zenodo_accessrequests.models import AccessRequest
+from zenodo_accessrequests.receivers import _send_notification, \
+    create_secret_link
 
-from .helpers import BaseTestCase
+
+def test_send_notification(app, db):
+    """Test sending of notifications."""
+    with app.test_request_context():
+        with patch('invenio_mail.tasks.send_email.delay') as mock:
+            _send_notification(
+                "info@invenio-software.org",
+                "Test subject",
+                "zenodo_accessrequests/emails/accepted.tpl",
+                var1="value1",
+            )
+            assert mock.called
+            msg = mock.call_args[0][0]
+            assert msg['recipients'] == ["info@invenio-software.org"]
+            assert msg['sender'] == 'info@zenodo.org'
+            assert msg['subject'] == 'Test subject'
 
 
-class ReceiversTestCase(BaseTestCase):
-    """Test signal receivers."""
-
-    config = {
-        "EMAIL_BACKEND": "flask.ext.email.backends.locmem.Mail"
-    }
-
-    # Note Flask-Testing 0.4.2 has a bug that causes render_templates to switch
-    # off template rendering not only for this test case but for all subsequent
-    # ones as well. Thus this test case should be run last.
-    render_templates = False
-
-    def tearDown(self):
-        """Clean test mailbox."""
-        if len(mail.outbox) != 0:
-            mail.outbox = []
-        super(ReceiversTestCase, self).tearDown()
-
-    def test_send_notification(self):
-        """Test sending of notifications."""
-        from zenodo_accessrequests.receivers import \
-            _send_notification
-
-        _send_notification(
-            "info@invenio-software.org",
-            "Test subject",
-            "accessrequests/emails/accepted.tpl",
-            var1="value1",
-        )
-        self.assertEqual(len(mail.outbox), 1)
-
-        msg = mail.outbox[0]
-        self.assertEqual(msg.to, ["info@invenio-software.org"])
-        self.assertEqual(msg.subject, "Test subject")
-        self.assertEqual(msg.from_email, cfg["CFG_SITE_SUPPORT_EMAIL"])
-        self.assertContext("var1", "value1")
-        self.assertTemplateUsed("accessrequests/emails/accepted.tpl")
-
-    @patch('zenodo_accessrequests.receivers.get_record')
-    def test_create_secret_link(self, get_record):
-        """Test creation of secret link."""
-        from zenodo_accessrequests.receivers import \
-            create_secret_link
-
-        # Patch get_record
-        record = dict(
-            title="Record Title",
-        )
-        get_record.return_value = record
-
-        r = self.get_request(confirmed=True)
-
+def test_create_secret_link(app, db, users, record_example,
+                            access_request_confirmed):
+    """Test creation of secret link."""
+    with app.test_request_context():
+        r = AccessRequest.query.filter_by(id=access_request_confirmed).first()
         create_secret_link(r)
 
-        self.assertEqual(r.link.title, "Record Title")
-        self.assertEqual(r.link.description, "")
-        self.assertTemplateUsed("accessrequests/link_description.tpl")
-        self.assertContext("request", r)
-        self.assertContext("record", record)
+        assert r.link.title == "Registered"
+        assert "anotheremail@example.org" in r.link.description
+        assert "Another Name" in r.link.description
+        assert "Bla bla bla" in r.link.description
 
-    @patch('zenodo_accessrequests.receivers.get_record')
-    def test_create_secret_link_norecord(self, get_record):
-        """Test creation of secret link with no record."""
-        from zenodo_accessrequests.errors import RecordNotFound
-        from zenodo_accessrequests.receivers import \
-            create_secret_link
 
-        # Patch get_record
-        get_record.return_value = None
-
-        r = self.get_request(confirmed=True)
-        self.assertRaises(RecordNotFound, create_secret_link, r)
+def test_create_secret_link_norecord(app, db, users):
+    """Test creation of secret link with no record."""
+    # Patch get_record
+    with app.test_request_context():
+        with patch('zenodo_accessrequests.utils.get_record',
+                   return_value=None):
+            with pytest.raises(PIDDoesNotExistError):
+                r = create_access_request("1", users, confirmed=True)

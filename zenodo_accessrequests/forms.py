@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Zenodo.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Zenodo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,16 +25,13 @@
 
 from __future__ import absolute_import, print_function
 
-from datetime import date, timedelta
-
-from wtforms import DateField, HiddenField, StringField, SubmitField, \
-    TextAreaField
-from wtforms import validators
+from datetime import datetime, timedelta
 
 from flask_babelex import gettext as _
-# TODO: Replace email validator + InvenioForm.
-from invenio.modules.accounts.forms import email_validator
-from invenio.utils.forms import InvenioBaseForm
+from flask_security.forms import email_required, email_validator
+from flask_wtf import Form
+from wtforms import DateField, HiddenField, StringField, SubmitField, \
+    TextAreaField, validators
 
 from .widgets import Button
 
@@ -42,17 +39,18 @@ from .widgets import Button
 def validate_expires_at(form, field):
     """Validate that date is in the future."""
     if form.accept.data:
-        if not field.data or date.today() >= field.data:
+        if not field.data or datetime.utcnow().date() >= field.data:
             raise validators.StopValidation(_(
                 "Please provide a future date."
             ))
-        if not field.data or date.today()+timedelta(days=365) < field.data:
+        if not field.data or \
+                datetime.utcnow().date()+timedelta(days=365) < field.data:
             raise validators.StopValidation(_(
                 "Please provide a date no more than 1 year into the future."
             ))
 
 
-class AccessRequestForm(InvenioBaseForm):
+class AccessRequestForm(Form):
     """Form for requesting access to a record."""
 
     full_name = StringField(
@@ -67,7 +65,7 @@ class AccessRequestForm(InvenioBaseForm):
             "Required. Please carefully check your email address. If the owner"
             " grants access, a secret link will sent to this email address."
         ),
-        validators=[validators.DataRequired(), email_validator]
+        validators=[email_required, email_validator]
     )
 
     justification = TextAreaField(
@@ -79,7 +77,7 @@ class AccessRequestForm(InvenioBaseForm):
     )
 
 
-class ApprovalForm(InvenioBaseForm):
+class ApprovalForm(Form):
     """Form used to approve/reject requests."""
 
     request = HiddenField()
@@ -97,7 +95,7 @@ class ApprovalForm(InvenioBaseForm):
             'access will automatically be revoked on this date. Date must be '
             'within next year.'
         ),
-        default=lambda: date.today() + timedelta(days=31),
+        default=lambda: datetime.utcnow().date() + timedelta(days=31),
         validators=[validate_expires_at, validators.Optional()],
     )
 
@@ -127,7 +125,7 @@ class ApprovalForm(InvenioBaseForm):
             )
 
 
-class DeleteForm(InvenioBaseForm):
+class DeleteForm(Form):
     """Form used for delete buttons."""
 
     link = HiddenField()

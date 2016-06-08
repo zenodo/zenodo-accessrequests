@@ -1,6 +1,6 @@
 {#
 ## This file is part of Zenodo.
-## Copyright (C) 2015 CERN.
+## Copyright (C) 2015, 2016 CERN.
 ##
 ## Zenodo is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -19,4 +19,110 @@
 ## granted to it by virtue of its status as an Intergovernmental Organization
 ## or submit itself to any jurisdiction.
 #}
-{% extends "accessrequests/settings/index_base.html" %}
+
+{%- extends config.ACCESSREQUESTS_SETTINGS_TEMPLATE %}
+
+{% set pending_num = requests.count() %}
+{% if pending_num > 0 %}
+  {% set panel_title = 'Pending access requests <span class="badge">%(num)s</span>'|format(num=pending_num)|safe%}
+{% else %}
+  {% set panel_title = 'Pending access requests'%}
+{% endif %}
+
+{% block settings_body %}
+
+  <ul class="list-group">
+    {%- for r in requests %}
+    {%- set record = get_record(r.recid)[1]  %}
+      {%- set url = url_for('zenodo_accessrequests_settings.accessrequest', request_id=r.id) %}
+      <li class="list-group-item">
+        <div class="pull-right">
+          <a href="{{url}}" class="btn btn-default btn-xs"><i class="fa fa-eye"></i> View</a>
+        </div>
+        <a href="{{ url_for('zenodo_accessrequests_settings.accessrequest', request_id=r.id) }}">{{ record.get('title') }}</a><br/><small class="text-muted">Full name: {{r.sender_full_name}}, Email: {{r.sender_email}}, Justification: {{r.justification|truncate(150)}}</small>
+        </li>
+      {% else %}
+        <li class="list-group-item">
+        <p align="center"><em>You have no pending access requests to accept/reject.</em></p>
+        <div class="row">
+            <div class="col-md-12">
+                <p><strong>What's this?</strong> There can be several reasons why a dataset cannot be shared openly (e.g. some clinical trial data). With {{config.THEME_SITENAME}}, you can now during upload set the access right to <span class="label label-danger">Restricted access</span>. This allows other users to request access to your dataset via {{config.THEME_SITENAME}}. Naturally, you are in full control of who gets granted/denied access.</p>
+            </div>
+
+        </div>
+        </li>
+      {%- endfor %}
+  </ul>
+
+
+  {%- if links_pagination.total > 0 or query %}
+  <div class="panel-body">
+    <div class="col-md-8">
+      Shared links gives anyone with the link access to restricted files in embargoed/restricted/closed access uploads.
+    </div>
+    <div class="col-md-4">
+      <form role="form" method="GET">
+        <input name="sort" type="hidden" value="{{order.selected()}}">
+        <div class="input-group">
+           <input autocomplete="off" name="query" class="form-control input-sm" type="text" tabindex="1" value="{{query}}">
+           <span class="input-group-btn">
+             <button type="submit" class="btn btn-primary btn-sm btn-inline-icon-hide-sm">
+               <i class="glyphicon glyphicon-search"></i> <span>Search</span>
+             </button>
+           </span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <table class="table">
+  <thead>
+    <tr class="active">
+      {% for t, f in [('Link','title'), ('Created','created'), ('Expires','expires_at'),] %}
+      <td>
+        <a href="{{ url_for('.index', query=query, sort=order.reverse(f)) }}"><strong>{{t}}</strong></a>
+          {% if order.is_selected(f) %} <i class="fa fa-caret-{{order.dir(f, asc='up', desc='down')}}"></i>{% endif %}
+      </td>
+      {% endfor %}
+      <td></td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+    </tr>
+    {%- for l in links_pagination.items %}
+    {%- set url = l.get_absolute_url('invenio_records_ui.recid') %}
+      <tr>
+        <td class="col-md-6"><a href="{{url}}">{{l.title}}</a> <button data-clipboard-text="{{url}}" class="btn btn-default btn-xs clip-button"><i class="fa fa-copy" title="Copy link"></i> Copy</button> <br/><small class="text-muted">{{l.description|truncate(150)}}</small></td>
+        <td class="col-md-2">{{l.created|from_isodatetime}}</td>
+        <td class="col-md-2">{% if l.expires_at %}{{l.expires_at|from_isodate}}{% endif %}</td>
+        <td class="col-md-2">
+          <form action="." method="POST">
+            {{form.csrf_token}}
+            {{form.link(value=l.id)}}
+            {{form.delete(class_="btn btn-danger btn-xs")}}
+          </form>
+        </td>
+      </tr>
+    {% else %}
+    <tr>
+      <td colspan="4"><div align="center"><em>Empty search result</em></div></td>
+    </tr>
+    {%- endfor %}
+  </tbody>
+  </table>
+
+  {%- if links_pagination.pages > 1 %}
+    <hr />
+    <div align="center">
+      {{ render_pagination(links_pagination, '.index') }}
+    </div>
+  {%- endif %}
+
+  {%- else %}
+    <ul class="list-group">
+      <li class="list-group-item">Shared links gives anyone with the link access to restricted files in embargoed/restricted/closed access uploads. </li>
+    </ul>
+  {%- endif %}
+
+{% endblock %}
