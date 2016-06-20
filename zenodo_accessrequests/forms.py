@@ -44,7 +44,7 @@ def validate_expires_at(form, field):
                 "Please provide a future date."
             ))
         if not field.data or \
-                datetime.utcnow().date()+timedelta(days=365) < field.data:
+                datetime.utcnow().date() + timedelta(days=365) < field.data:
             raise validators.StopValidation(_(
                 "Please provide a date no more than 1 year into the future."
             ))
@@ -93,7 +93,7 @@ class ApprovalForm(Form):
         description=_(
             'Format: YYYY-MM-DD. Required if you accept the request. The '
             'access will automatically be revoked on this date. Date must be '
-            'within next year.'
+            'within the next year.'
         ),
         default=lambda: datetime.utcnow().date() + timedelta(days=31),
         validators=[validate_expires_at, validators.Optional()],

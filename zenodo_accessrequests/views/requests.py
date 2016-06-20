@@ -91,10 +91,7 @@ def access_request(pid, record, template):
 
     # Record must have an owner and owner must still exists.
     owners = record.get('owners', [])
-    record_owners = filter(
-        None,
-        [datastore.find_user(id=owner_id) for owner_id in owners]
-    )
+    record_owners = [datastore.find_user(id=owner_id) for owner_id in owners]
     if not record_owners:
         abort(404)
 

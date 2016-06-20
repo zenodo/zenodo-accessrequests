@@ -72,6 +72,7 @@ def app(request):
         SQLALCHEMY_DATABASE_URI=os.environ.get(
             'SQLALCHEMY_DATABASE_URI', 'sqlite://'
         ),
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SECRET_KEY='mysecret',
         SUPPORT_EMAIL='info@zenodo.org',
         WTF_CSRF_ENABLED=False,

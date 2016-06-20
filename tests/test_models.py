@@ -133,7 +133,6 @@ def test_accept(app, db, users, record_example, access_request_not_confirmed,
 def test_reject(app, db, users, record_example, access_request_not_confirmed,
                 access_request_confirmed):
     """Test reject signal and state."""
-
     mock_request_rejected = Mock()
 
     with app.test_request_context():
@@ -206,7 +205,7 @@ def test_create_secret_link(app, db, users, record_example):
                                   confirmed=False)
         l = r.create_secret_link(
             "My link", "Link description",
-            expires_at=datetime.utcnow()+timedelta(days=1)
+            expires_at=datetime.utcnow() + timedelta(days=1)
         )
         assert r.link == l
         assert l.title == "My link"
@@ -234,7 +233,9 @@ def test_creation(app, db, users, record_example):
             assert l.expires_at is None
             assert l.token != ''
             assert mock_link_created.called
+            db.session.commit()
 
+            l = SecretLink.query.get(l.id)
             assert SecretLink.validate_token(l.token, dict(recid=pid_value),)
             assert not SecretLink.validate_token(l.token, dict(recid='-1'))
 
@@ -271,14 +272,14 @@ def test_expired(app, db, users):
         l = SecretLink.create(
             "Test title", receiver, dict(recid='123456'),
             description="Test description",
-            expires_at=datetime.utcnow()-timedelta(days=1))
+            expires_at=datetime.utcnow() - timedelta(days=1))
         assert l.is_expired()
         assert not l.is_valid()
 
         l = SecretLink.create(
             "Test title", receiver, dict(recid='123456'),
             description="Test description",
-            expires_at=datetime.utcnow()+timedelta(days=1))
+            expires_at=datetime.utcnow() + timedelta(days=1))
         assert not l.is_expired()
         assert l.is_valid()
 
@@ -308,4 +309,4 @@ def test_get_absolute_url(app, db, users):
         l = SecretLink.create("Testing", receiver, dict(recid='1'))
         url = l.get_absolute_url('invenio_records_ui.recid')
         assert "/records/1?" in url
-        assert "token={0}".format(l.token.decode('utf-8')) in url
+        assert "token={0}".format(l.token) in url

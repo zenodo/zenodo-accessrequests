@@ -27,5 +27,8 @@
     {%- if icon %}
     <i class="{{icon}} form-control-feedback" aria-hidden="true" ></i>
     {%- endif%}
+    {%- if field.description %}
+    <small class="text-muted">{{field.description}}</small>
+    {%- endif %}
   </div>
 {% endmacro %}

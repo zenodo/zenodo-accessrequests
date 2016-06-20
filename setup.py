@@ -33,13 +33,14 @@ history = open('CHANGES.rst').read()
 tests_require = [
     'check-manifest>=0.25',
     'coverage>=4.0',
+    'invenio-records-ui>=1.0.0a7',
     'isort>=4.2.2',
+    'mock>=1.3.0',
     'pep257>=0.7.0',
     'pytest-cache>=1.0',
     'pytest-cov>=1.8.0',
     'pytest-pep8>=1.0.6',
     'pytest>=2.8.0',
-    'invenio-records-ui>=1.0.0a7',
 ]
 
 extras_require = {
@@ -59,20 +60,21 @@ setup_requires = [
 ]
 
 install_requires = [
+    'blinker>=1.4',
     'Flask-BabelEx>=0.9.2',
     'Flask-Breadcrumbs>=0.3.0',
-    'SQLAlchemy>=1.0.11',
-    'WTForms>=2.0',
-    'blinker>=1.4',
+    'Flask>=0.10',
     'invenio-access>=1.0.0a7',
     'invenio-accounts>=1.0.0a12',
     'invenio-db>=1.0.0a9',
     'invenio-files-rest>=1.0.0a3',
+    'invenio-formatter>=1.0.0a2',
     'invenio-mail>=1.0.0a4',
     'invenio-pidstore>=1.0.0a7',
     'invenio-records>=1.0.0a16',
-    'invenio-formatter>=1.0.0a2',
     'itsdangerous>=0.24',
+    'SQLAlchemy>=1.0.11',
+    'WTForms>=2.0',
 ]
 
 packages = find_packages()

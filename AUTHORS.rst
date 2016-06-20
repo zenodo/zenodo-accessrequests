@@ -27,4 +27,6 @@ Authors
 
 Zenodo module for providing access request feature.
 
-- CERN <info@zenodo.org>
+- Adrian Baran Pawel <adrian.baran.pawel@cern.ch>
+- Lars Holm Nielsen <lars.holm.nielsen@cern.ch>
+- Leonardo Rossi <leonardo.r@cern.ch>

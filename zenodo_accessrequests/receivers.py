@@ -38,9 +38,6 @@ from .tokens import EmailConfirmationSerializer
 from .utils import get_record
 
 
-# TODO: Change configuration variable names.
-
-
 def connect_receivers():
     """Connect receivers to signals."""
     request_created.connect(send_email_validation)

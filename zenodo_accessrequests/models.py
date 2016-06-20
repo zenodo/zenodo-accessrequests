@@ -41,6 +41,10 @@ from .tokens import SecretLinkFactory
 
 # TODO: UTC timestamps + localization.
 
+def secret_key():
+    """Return secret key as bytearray."""
+    return current_app.config['SECRET_KEY'].encode('utf-8')
+
 
 class RequestStatus(object):
     """Access request status representation."""
@@ -60,9 +64,10 @@ class SecretLink(db.Model):
                    autoincrement=True)
     """Secret link id."""
 
-    token = db.Column(EncryptedType(db.Text,
-                                    lambda: current_app.config['SECRET_KEY']),
-                      nullable=False)
+    token = db.Column(
+        EncryptedType(type_in=db.Text, key=secret_key),
+        nullable=False
+    )
     """Secret token for link (should be stored encrypted)."""
 
     owner_user_id = db.Column(
@@ -102,7 +107,7 @@ class SecretLink(db.Model):
                 title=title,
                 description=description,
                 expires_at=expires_at,
-                token="",
+                token='',
             )
             db.session.add(obj)
 
@@ -110,7 +115,7 @@ class SecretLink(db.Model):
             # Create token (dependent on obj.id and recid)
             obj.token = SecretLinkFactory.create_token(
                 obj.id, extra_data, expires_at=expires_at
-            )
+            ).decode('utf8')
 
         link_created.send(obj)
         return obj
