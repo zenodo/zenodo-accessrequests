@@ -69,6 +69,7 @@ install_requires = [
     'invenio-db>=1.0.0a9',
     'invenio-files-rest>=1.0.0a3',
     'invenio-formatter>=1.0.0a2',
+    'invenio-i18n>=1.0.0a4',
     'invenio-mail>=1.0.0a4',
     'invenio-pidstore>=1.0.0a7',
     'invenio-records>=1.0.0a16',
