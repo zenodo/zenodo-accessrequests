@@ -39,13 +39,17 @@
             <div class="row">
               <div class="col-md-8">
                 <h5>Record:</h5>
-                <p><a href="{{url_for('invenio_records_ui.recid', pid_value=record.get('recid'))}}">{{record.get('title')}}</a> <small class="text-muted">(DOI: {{record.get('doi')}})</small></p>
+                <p><a href="{{url_for('invenio_records_ui.recid', pid_value=pid.pid_value)}}">{{record.get('title')}}</a> <small class="text-muted">(DOI: {{record.get('doi')}})</small></p>
               </div>
               <div class="col-md-4">
                 <h5>Uploaded by:</h5>
                 {% for owner in owners: %}
                   {% if owner.profile %}
-                    <p>{{owner.profile.full_name}}</p>
+                    {% if owner.profile.full_name %}
+                      <p>{{owner.profile.full_name}}</p>
+                    {% else %}
+                      <p>{{owner.profile.username}}</p>
+                    {% endif %}
                   {% endif %}
                 {% endfor %}
               </div>
@@ -62,7 +66,7 @@
             <div class="row"><div class="col-md-12">By pressing "Send request", you agree to that we provide above details (<strong>including your email address</strong>) to the owner of the record.<br/><br/></div></div>
             <div class="form-group">
               <div class="">
-                <a href="{{url_for('invenio_records_ui.recid', pid_value=record.get('recid'))}}" class="btn btn-default"><i class="fa fa-times"></i> Cancel</a>
+                <a href="{{url_for('invenio_records_ui.recid', pid_value=pid.pid_value)}}" class="btn btn-default"><i class="fa fa-times"></i> Cancel</a>
                 <button type="submit" class="btn btn-primary"><i class="fa fa-check"></i> Send request</button>
               </div>
             </div>

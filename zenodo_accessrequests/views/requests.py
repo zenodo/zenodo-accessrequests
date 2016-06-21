@@ -131,6 +131,7 @@ def access_request(pid, record, template):
 
     return render_template(
         template,
+        pid=pid,
         record=record,
         form=form,
         owners=record_owners,

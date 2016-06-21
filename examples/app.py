@@ -39,12 +39,12 @@ import os
 from time import sleep
 
 from flask import Flask
-from flask_babelex import Babel
 from flask_menu import Menu as FlaskMenu
 from invenio_access import InvenioAccess
 from invenio_accounts import InvenioAccounts
 from invenio_accounts.testutils import create_test_user
 from invenio_accounts.views import blueprint as blueprint_user
+from invenio_userprofiles import InvenioUserProfiles
 from invenio_admin import InvenioAdmin
 from invenio_db import InvenioDB, db
 from invenio_indexer import InvenioIndexer
@@ -54,6 +54,9 @@ from invenio_pidstore import InvenioPIDStore
 from invenio_records import InvenioRecords
 from invenio_records_ui import InvenioRecordsUI
 from invenio_search import InvenioSearch
+from invenio_i18n import InvenioI18N
+from invenio_userprofiles.views import \
+    blueprint_ui_init as userprofiles_blueprint_ui_init
 
 from zenodo_accessrequests import ZenodoAccessRequests
 from zenodo_accessrequests.views.requests import blueprint as request_blueprint
@@ -98,10 +101,11 @@ app.config.update(
     )
 )
 
-Babel(app)
 InvenioDB(app)
 InvenioAccounts(app)
+InvenioUserProfiles(app)
 InvenioRecords(app)
+InvenioI18N(app)
 FlaskMenu(app)
 Mail(app)
 InvenioRecordsUI(app)
@@ -116,6 +120,7 @@ InvenioAdmin(app, permission_factory=lambda x: x,
 app.register_blueprint(request_blueprint)
 app.register_blueprint(settings_blueprint)
 app.register_blueprint(blueprint_user)
+app.register_blueprint(userprofiles_blueprint_ui_init)
 
 
 @app.cli.group()
@@ -147,6 +152,7 @@ def records():
             'access_right': 'restricted',
             'access_conditions': 'fuu',
             'owners': [1, 2],
+            'recid': 1
         }, id_=rec_uuid)
         indexer.index_by_id(pid1.object_uuid)
 
