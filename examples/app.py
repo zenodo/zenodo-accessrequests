@@ -44,9 +44,9 @@ from invenio_access import InvenioAccess
 from invenio_accounts import InvenioAccounts
 from invenio_accounts.testutils import create_test_user
 from invenio_accounts.views import blueprint as blueprint_user
-from invenio_userprofiles import InvenioUserProfiles
 from invenio_admin import InvenioAdmin
 from invenio_db import InvenioDB, db
+from invenio_i18n import InvenioI18N
 from invenio_indexer import InvenioIndexer
 from invenio_indexer.api import RecordIndexer
 from invenio_mail import InvenioMail as Mail
@@ -54,7 +54,7 @@ from invenio_pidstore import InvenioPIDStore
 from invenio_records import InvenioRecords
 from invenio_records_ui import InvenioRecordsUI
 from invenio_search import InvenioSearch
-from invenio_i18n import InvenioI18N
+from invenio_userprofiles import InvenioUserProfiles
 from invenio_userprofiles.views import \
     blueprint_ui_init as userprofiles_blueprint_ui_init
 

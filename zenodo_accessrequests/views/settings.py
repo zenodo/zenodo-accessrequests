@@ -28,19 +28,17 @@ import re
 
 from flask import Blueprint, abort, flash, redirect, render_template, \
     request, url_for
+from flask_babelex import gettext as _
 from flask_breadcrumbs import register_breadcrumb
 from flask_login import current_user, login_required
 from flask_menu import register_menu
+from invenio_db import db
 from jinja2 import Markup, escape, evalcontextfilter
 
-from invenio_db import db
-from flask_babelex import gettext as _
-
-from ..utils import get_record
 from ..forms import ApprovalForm, DeleteForm
 from ..helpers import QueryOrdering
 from ..models import AccessRequest, RequestStatus, SecretLink
-
+from ..utils import get_record
 
 blueprint = Blueprint(
     'zenodo_accessrequests_settings',

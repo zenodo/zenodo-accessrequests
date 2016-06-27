@@ -25,14 +25,13 @@
 from __future__ import absolute_import, print_function
 
 from datetime import datetime
+
 from flask import Blueprint, abort, current_app, flash, redirect, \
     render_template, request, url_for
-from flask_login import current_user
-
 from flask_babelex import gettext as _
-
-from werkzeug.local import LocalProxy
+from flask_login import current_user
 from invenio_db import db
+from werkzeug.local import LocalProxy
 
 from ..forms import AccessRequestForm
 from ..models import AccessRequest, RequestStatus

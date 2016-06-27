@@ -25,6 +25,7 @@
 """Zenodo module for providing access request feature."""
 
 import os
+
 from setuptools import find_packages, setup
 
 readme = open('README.rst').read()
