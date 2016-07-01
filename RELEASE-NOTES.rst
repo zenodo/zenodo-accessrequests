@@ -1,15 +1,13 @@
-==============================
- Zenodo-AccessRequests v0.1.0
-==============================
+================================
+ Zenodo-AccessRequests v1.0.0a1
+================================
 
-Zenodo-AccessRequests v0.1.0 was released on TBD, 2015.
+Zenodo-AccessRequests v1.0.0a1 was released on July 1, 2016.
 
 About
 -----
 
 Zenodo module for providing access request feature.
-
-*This is an experimental developer preview release.*
 
 What's new
 ----------
@@ -19,7 +17,7 @@ What's new
 Installation
 ------------
 
-   $ pip install zenodo-accessrequests==0.1.0
+   $ pip install zenodo-accessrequests==1.0.0a1
 
 Documentation
 -------------

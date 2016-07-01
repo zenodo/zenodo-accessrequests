@@ -44,8 +44,6 @@ services:
 
 python:
   - "2.7"
-  - "3.3"
-  - "3.4"
   - "3.5"
 
 before_install:
@@ -64,3 +62,14 @@ script:
 
 after_success:
   - coveralls
+
+deploy:
+  provider: pypi
+  user: lnielsen
+  password:
+    secure: Y+jZlPyVKepVukSE4EGizg66Ubk/ye3MVehFuJJzRiYYTcaaqtX5PvLp76oWcz2vB9GSkwnsaAtM7LdyKmwQ8e7ew7Jt/dI8HsvqWUAR+/lAaKUtqJUWmrYrFxi+PwrpdjL0YMXTK6+vifhOnANFRup0rA1kAPdXClY9qyb8hIk/damERvtCQdYup7fQ6GbaHucby4tsT30Ccop07MQHr8TpYS66CSjWJbAsXwHzFDilO8M5/48V0Jjfk+R0zGym2Ryrr+5z4EKTZGw8bJord7r73YCNsOmhsKgQz39rnLwQVDkIpKc88qoJ0g1yA6/DOFL6iWv3ZBWfjhup2i+LXnOJHWK05VSMMlZCudLc6M01ICZqKF2B/07bEJrjE9C25bq3F9To0p4CmstIm0cMkIksy02WhBrt7w6X3bA92WK5eTtGbJRdMjE/cxhRdn1aenboIHk8FckLhuKMZdhXgaVsH7QbzKw2is14sB5Hq3HmSfEji1t2Siok/L3kGZESnCifoQCWpelMO2KbiHuvA232y7Yo/H2YDiwPZGGGmQWlKt0U5DSTwspvkorB79njbQOI7mhE0nmi8tx4L4n38Og/VL4Bx3RIbJwP13VUtg85ptOYOg7r7V3fI4CvyeBrMhHFwS2rGlP4bAmODT8qxbXiFnvDHFprSZdIa0MuYg4=
+  distributions: "sdist bdist_wheel"
+  on:
+    tags: true
+    python: "2.7"
+    condition: $REQUIREMENTS = release
