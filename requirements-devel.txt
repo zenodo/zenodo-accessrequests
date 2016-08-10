@@ -29,3 +29,4 @@
 -e git+git://github.com/inveniosoftware/invenio-mail.git#egg=invenio-mail
 -e git+git://github.com/inveniosoftware/invenio-pidstore.git#egg=invenio-pidstore
 -e git+git://github.com/inveniosoftware/invenio-records.git#egg=invenio-records
+-e git+git://github.com/inveniosoftware/invenio-records-ui.git#egg=invenio-records-ui
