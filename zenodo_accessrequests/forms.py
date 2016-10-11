@@ -63,7 +63,7 @@ class AccessRequestForm(Form):
         label=_("Email address"),
         description=_(
             "Required. Please carefully check your email address. If the owner"
-            " grants access, a secret link will sent to this email address."
+            " grants access, a secret link will be sent to this email address."
         ),
         validators=[email_required, email_validator]
     )
