@@ -77,7 +77,7 @@ def is_removed(record):
 #
 
 
-def access_request(pid, record, template):
+def access_request(pid, record, template, **kwargs):
     """Create an access request."""
     recid = int(pid.pid_value)
     datastore = LocalProxy(
@@ -137,7 +137,7 @@ def access_request(pid, record, template):
     )
 
 
-def confirm(pid, record, template):
+def confirm(pid, record, template, **kwargs):
     """Confirm email address."""
     recid = int(pid.pid_value)
 
