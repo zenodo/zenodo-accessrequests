@@ -67,7 +67,7 @@ install_requires = [
     'Flask>=0.11',
     'invenio-access>=1.0.0a11',
     'invenio-accounts>=1.0.0b1',
-    'invenio-db>=1.0.0b3',
+    'invenio-db>=1.0.0b5',
     'invenio-files-rest>=1.0.0a14',
     'invenio-formatter>=1.0.0a2',
     'invenio-i18n>=1.0.0b1',
@@ -124,6 +124,10 @@ setup(
         ],
         'invenio_i18n.translations': [
             'messages = zenodo_accessrequests'
+        ],
+        'invenio_base.secret_key': [
+            'zenodo_accessrequests = '
+            'zenodo_accessrequests.utils:rebuild_secret_link_tokens',
         ],
     },
     extras_require=extras_require,
