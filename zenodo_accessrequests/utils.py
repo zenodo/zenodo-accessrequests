@@ -27,9 +27,13 @@
 from __future__ import absolute_import, print_function
 
 from functools import partial
+from flask import current_app
 
+from invenio_db.utils import rebuild_encrypted_properties
 from invenio_pidstore.resolver import Resolver
 from invenio_records.api import Record
+
+from .models import SecretLink
 
 resolver = Resolver(pid_type='recid', object_type='rec',
                     getter=partial(Record.get_record, with_deleted=True))
@@ -39,3 +43,9 @@ resolver = Resolver(pid_type='recid', object_type='rec',
 def get_record(recid):
     """Get record."""
     return resolver.resolve(str(recid))
+
+
+def rebuild_secret_link_tokens(old_key):
+    """Rebuild the token field in SecretLink when the SECRET_KEY is changed."""
+    current_app.logger.info('rebuilding SecretLink.token...')
+    rebuild_encrypted_properties(old_key, SecretLink, ['token'])

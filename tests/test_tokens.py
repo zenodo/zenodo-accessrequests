@@ -27,12 +27,14 @@ from __future__ import absolute_import, print_function
 from datetime import datetime, timedelta
 
 import pytest
+from invenio_accounts.testutils import create_test_user
 from itsdangerous import BadData, BadSignature, JSONWebSignatureSerializer, \
     SignatureExpired
-
+from zenodo_accessrequests.models import SecretLink
 from zenodo_accessrequests.tokens import EmailConfirmationSerializer, \
     EncryptedTokenMixIn, SecretLinkFactory, SecretLinkSerializer, \
     TimedSecretLinkSerializer
+from zenodo_accessrequests.utils import rebuild_secret_link_tokens
 
 
 def test_email_confirmation_serializer_create_validate(app, db):
@@ -230,3 +232,31 @@ def test_secretlink_factory_load_token(app, db):
         with pytest.raises(SignatureExpired):
             SecretLinkFactory.load_token(t)
         assert SecretLinkFactory.load_token(t, force=True) is not None
+
+
+def test_rebuilding_secret_link_tokens(app, db, users):
+    """Test rebuilding access tokens with random new SECRET_KEY."""
+    old_secret_key = app.secret_key
+    sender = create_test_user(
+        email='sender7@myemail.it',
+        password='sender',
+        confirmed_at=datetime.utcnow(),
+    )
+
+    with db.session.begin_nested():
+        tok1 = SecretLink.create('tok1', sender, None)
+        db.session.add(tok1)
+    db.session.commit()
+    secret_link_before = SecretLink.query.order_by(SecretLink.id).first()
+    token_before = secret_link_before.token
+    # Changing application SECRET_KEY
+    app.secret_key = 'NEW_SECRET_KEY'
+    db.session.expunge_all()
+    # Asserting the decoding error occurs with the stale SECRET_KEY
+    with pytest.raises(UnicodeDecodeError):
+        SecretLink.query.all()
+
+    rebuild_secret_link_tokens(old_secret_key)
+    secret_link_after = SecretLink.query.order_by(SecretLink.id).first()
+    token_after = secret_link_after.token
+    token_before == token_after
