@@ -32,21 +32,21 @@ readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
 tests_require = [
-    'check-manifest>=0.25',
+    'check-manifest>=0.35',
     'coverage>=4.0',
-    'invenio-records-ui>=1.0.0a8',
-    'isort>=4.2.2',
+    'invenio-records-ui>=1.0.1',
+    'isort>=4.3.4',
     'mock>=1.3.0',
-    'pep257>=0.7.0',
+    'pydocstyle>=2.0.0',
     'pytest-cache>=1.0',
-    'pytest-cov>=1.8.0',
+    'pytest-cov>=2.5.1',
     'pytest-pep8>=1.0.6',
-    'pytest>=2.8.0',
+    'pytest>=3.7.0',
 ]
 
 extras_require = {
     'docs': [
-        "Sphinx>=1.3",
+        'Sphinx>=1.5,<1.6',
     ],
     'tests': tests_require,
 }
@@ -64,7 +64,7 @@ install_requires = [
     'blinker>=1.4',
     'Flask-BabelEx>=0.9.2',
     'Flask-Breadcrumbs>=0.3.0',
-    'Flask>=0.11',
+    'Flask>=1.0.2',
     'invenio-access>=1.0.0a11',
     'invenio-accounts>=1.0.0b1',
     'invenio-db>=1.0.0b3',
@@ -74,8 +74,7 @@ install_requires = [
     'invenio-mail>=1.0.0a5',
     'invenio-pidstore>=1.0.0b1',
     'invenio-records>=1.0.0b1',
-    'itsdangerous>=0.24',
-    'SQLAlchemy>=1.0.11',
+    'itsdangerous>=1.1.0',
     'WTForms>=2.0',
 ]
 

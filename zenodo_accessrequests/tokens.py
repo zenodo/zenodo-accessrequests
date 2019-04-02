@@ -33,8 +33,7 @@ from flask import current_app
 from itsdangerous import BadData, JSONWebSignatureSerializer, \
     SignatureExpired, TimedJSONWebSignatureSerializer
 
-
-# TODO: Remove dependency on current_app
+SUPPORTED_DIGEST_ALGORITHMS = ('HS256', 'HS512')
 
 
 class TokenMixin(object):
@@ -136,7 +135,7 @@ class EmailConfirmationSerializer(TimedJSONWebSignatureSerializer, TokenMixin):
     together with a random bit to ensure all tokens are unique.
     """
 
-    def __init__(self, expires_in=None):
+    def __init__(self, expires_in=None, **kwargs):
         """Initialize underlying TimedJSONWebSignatureSerializer."""
         dt = expires_in or \
             current_app.config['ACCESSREQUESTS_CONFIRMLINK_EXPIRES_IN']
@@ -145,17 +144,28 @@ class EmailConfirmationSerializer(TimedJSONWebSignatureSerializer, TokenMixin):
             current_app.config['SECRET_KEY'],
             expires_in=dt,
             salt='accessrequests-email',
+            **kwargs
         )
+
+    @classmethod
+    def compat_validate_token(cls, **kwargs):
+        """Multiple algorithm-compatible token validation."""
+        for algorithm in SUPPORTED_DIGEST_ALGORITHMS:
+            try:
+                cls(algorithm_name=algorithm).validate_token(**kwargs)
+            except BadData:  # move to next algorithm
+                continue
 
 
 class SecretLinkSerializer(JSONWebSignatureSerializer, TokenMixin):
     """Serializer for secret links."""
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """Initialize underlying JSONWebSignatureSerializer."""
         super(SecretLinkSerializer, self).__init__(
             current_app.config['SECRET_KEY'],
             salt='accessrequests-link',
+            **kwargs
         )
 
 
@@ -163,7 +173,7 @@ class TimedSecretLinkSerializer(TimedJSONWebSignatureSerializer,
                                 TokenMixin):
     """Serializer for expiring secret links."""
 
-    def __init__(self, expires_at=None):
+    def __init__(self, expires_at=None, **kwargs):
         """Initialize underlying TimedJSONWebSignatureSerializer."""
         assert isinstance(expires_at, datetime) or expires_at is None
 
@@ -173,11 +183,12 @@ class TimedSecretLinkSerializer(TimedJSONWebSignatureSerializer,
             current_app.config['SECRET_KEY'],
             expires_in=int(dt.total_seconds()) if dt else None,
             salt='accessrequests-timedlink',
+            **kwargs
         )
 
 
 class SecretLinkFactory(object):
-    """"Functions for creating and validating any secret link tokens."""
+    """Functions for creating and validating any secret link tokens."""
 
     @classmethod
     def create_token(cls, obj_id, data, expires_at=None):
@@ -192,22 +203,33 @@ class SecretLinkFactory(object):
     @classmethod
     def validate_token(cls, token, expected_data=None):
         """Validate a secret link token (non-expiring + expiring)."""
-        s = SecretLinkSerializer()
-        st = TimedSecretLinkSerializer()
+        for algorithm in SUPPORTED_DIGEST_ALGORITHMS:
+            s = SecretLinkSerializer(algorithm_name=algorithm)
+            st = TimedSecretLinkSerializer(algorithm_name=algorithm)
 
-        data = st.validate_token(token, expected_data=expected_data)
-        if data:
-            return data
-
-        return s.validate_token(token, expected_data=expected_data)
+            try:
+                for serializer in (s, st):
+                    data = serializer.validate_token(
+                        token, expected_data=expected_data)
+                    if data:
+                        return data
+            except SignatureExpired:  # move to next algorithm
+                raise
+            except BadData:
+                continue  # move to next serializer/algorithm
 
     @classmethod
     def load_token(cls, token, force=False):
         """Validate a secret link token (non-expiring + expiring)."""
-        s = SecretLinkSerializer()
-        st = TimedSecretLinkSerializer()
-
-        try:
-            return s.load_token(token, force=force)
-        except BadData:
-            return st.load_token(token, force=force)
+        for algorithm in SUPPORTED_DIGEST_ALGORITHMS:
+            s = SecretLinkSerializer(algorithm_name=algorithm)
+            st = TimedSecretLinkSerializer(algorithm_name=algorithm)
+            for serializer in (s, st):
+                try:
+                    data = serializer.load_token(token, force=force)
+                    if data:
+                        return data
+                except SignatureExpired:
+                    raise  # signature was parsed and is expired
+                except BadData:
+                    continue  # move to next serializer/algorithm

@@ -144,7 +144,7 @@ def confirm(pid, record, template, **kwargs):
     token = request.view_args['token']
 
     # Validate token
-    data = EmailConfirmationSerializer().validate_token(token)
+    data = EmailConfirmationSerializer.compat_validate_token(token)
     if data is None:
         flash(_("Invalid confirmation link."), category='danger')
         return redirect(url_for("invenio_records_ui.recid", pid_value=recid))

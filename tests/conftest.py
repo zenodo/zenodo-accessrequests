@@ -40,8 +40,8 @@ from invenio_access import InvenioAccess
 from invenio_accounts import InvenioAccounts
 from invenio_accounts.testutils import create_test_user
 from invenio_accounts.views import blueprint as blueprint_user
-from invenio_db import db as db_
 from invenio_db import InvenioDB
+from invenio_db import db as db_
 from invenio_formatter import InvenioFormatter
 from invenio_mail import InvenioMail as Mail
 from invenio_pidstore import InvenioPIDStore
@@ -49,6 +49,7 @@ from invenio_pidstore.models import PersistentIdentifier, PIDStatus
 from invenio_records import InvenioRecords
 from invenio_records.api import Record
 from invenio_records_ui import InvenioRecordsUI
+from invenio_records_ui.views import create_blueprint_from_app
 from simplekv.memory.redisstore import RedisStore
 from sqlalchemy_utils.functions import create_database, database_exists, \
     drop_database
@@ -114,6 +115,7 @@ def app(request):
     app_.register_blueprint(request_blueprint)
     app_.register_blueprint(settings_blueprint)
     app_.register_blueprint(blueprint_user)
+    app_.register_blueprint(create_blueprint_from_app(app_))
 
     with app_.app_context():
         yield app_
