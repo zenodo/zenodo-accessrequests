@@ -24,10 +24,9 @@
 
 from __future__ import absolute_import, print_function
 
-from .proxies import current_zenodo_accessrequests
 from .ext import ZenodoAccessRequests
+from .proxies import current_zenodo_accessrequests
 from .version import __version__
-
 
 __all__ = (
     '__version__',

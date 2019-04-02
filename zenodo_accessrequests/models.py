@@ -38,8 +38,8 @@ from .signals import link_created, link_revoked, request_accepted, \
     request_confirmed, request_created, request_rejected
 from .tokens import SecretLinkFactory
 
-
 # TODO: UTC timestamps + localization.
+
 
 def secret_key():
     """Return secret key as bytearray."""
