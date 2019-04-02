@@ -148,11 +148,11 @@ class EmailConfirmationSerializer(TimedJSONWebSignatureSerializer, TokenMixin):
         )
 
     @classmethod
-    def compat_validate_token(cls, **kwargs):
+    def compat_validate_token(cls, *args, **kwargs):
         """Multiple algorithm-compatible token validation."""
         for algorithm in SUPPORTED_DIGEST_ALGORITHMS:
             try:
-                cls(algorithm_name=algorithm).validate_token(**kwargs)
+                cls(algorithm_name=algorithm).validate_token(*args, **kwargs)
             except BadData:  # move to next algorithm
                 continue
 
