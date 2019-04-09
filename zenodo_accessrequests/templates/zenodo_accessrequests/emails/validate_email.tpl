@@ -28,4 +28,4 @@ To complete the access request, please verify your email address by clicking the
 
 {{confirm_link|safe}}
 
-Please note that above link is only valid for about {{days}} days. If this request was note made by you please ignore this message.
+Please note that above link is only valid for about {{days}} days. If this request was not made by you please ignore this message.
