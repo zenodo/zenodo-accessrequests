@@ -29,7 +29,7 @@ from datetime import datetime, timedelta
 
 from flask_babelex import gettext as _
 from flask_security.forms import email_required, email_validator
-from flask_wtf import Form
+from flask_wtf import FlaskForm
 from wtforms import DateField, HiddenField, StringField, SubmitField, \
     TextAreaField, validators
 
@@ -50,7 +50,7 @@ def validate_expires_at(form, field):
             ))
 
 
-class AccessRequestForm(Form):
+class AccessRequestForm(FlaskForm):
     """Form for requesting access to a record."""
 
     full_name = StringField(
@@ -77,7 +77,7 @@ class AccessRequestForm(Form):
     )
 
 
-class ApprovalForm(Form):
+class ApprovalForm(FlaskForm):
     """Form used to approve/reject requests."""
 
     request = HiddenField()
@@ -125,7 +125,7 @@ class ApprovalForm(Form):
             )
 
 
-class DeleteForm(Form):
+class DeleteForm(FlaskForm):
     """Form used for delete buttons."""
 
     link = HiddenField()
