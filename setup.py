@@ -75,6 +75,7 @@ install_requires = [
     'invenio-pidstore>=1.0.0b1',
     'invenio-records>=1.0.0b1',
     'itsdangerous>=1.1.0',
+    'werkzeug>=0.14.1,<1.0.0',
     'WTForms>=2.0',
 ]
 
