@@ -156,7 +156,22 @@ def confirm(pid, record, template, **kwargs):
 
     # Confirm email address.
     if r.status != RequestStatus.EMAIL_VALIDATION:
-        abort(404)
+        if r.status == RequestStatus.PENDING:
+            abort(
+                400, 
+                (
+                    "Your email address has been verified. The access request "
+                    "is now pending a decision from the record owner."
+                )
+            )
+        else:
+            abort(
+                400, 
+                (
+                    "The request has been {}. "
+                    "Check your mail inbox for the record owner's response."
+                ).format(r.status.value.lower())
+            )
 
     r.confirm_email()
     db.session.commit()
