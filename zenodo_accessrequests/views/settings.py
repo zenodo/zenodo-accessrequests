@@ -134,8 +134,18 @@ def index():
 def accessrequest(request_id):
     """Accept/reject access request."""
     r = AccessRequest.get_by_receiver(request_id, current_user)
-    if not r or r.status != RequestStatus.PENDING:
+    if not r:
         abort(404)
+
+    if r.status != RequestStatus.PENDING:
+        abort(
+            400, 
+            (
+                "This link is not available anymore since the access "
+                "request has been {}. You can navigate to your "
+                "\"Shared links\" page to see all your links."
+            ).format(r.status.value.lower()),
+        )
 
     form = ApprovalForm(request.form)
 
