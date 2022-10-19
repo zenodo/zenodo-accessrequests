@@ -24,6 +24,7 @@
 
 include *.rst
 include *.sh
+include *.yml
 include *.txt
 include .dockerignore
 include .editorconfig

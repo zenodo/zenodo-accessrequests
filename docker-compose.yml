@@ -1,0 +1,11 @@
+version: '2.1'
+services:
+  cache:
+    image: redis
+    read_only: true
+    ports:
+      - "6379:6379"
+  mq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
