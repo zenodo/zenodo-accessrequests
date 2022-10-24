@@ -1,6 +1,6 @@
 ..
     This file is part of Zenodo.
-    Copyright (C) 2016 CERN.
+    Copyright (C) 2016-2022 CERN.
 
     Zenodo is free software; you can redistribute it
     and/or modify it under the terms of the GNU General Public License as
@@ -25,6 +25,6 @@
 Changes
 =======
 
-Version 1.0.0a5 (released April 9th, 2019)
+Version 1.0.0a6 (released October 24th, 2022)
 
 - Initial public release.
