@@ -62,7 +62,7 @@ setup_requires = [
 
 install_requires = [
     'blinker>=1.4',
-    'Flask-BabelEx>=0.9.2',
+    'Flask-BabelEx>=0.9.3',
     'Flask-Breadcrumbs>=0.4.0',
     'Flask>=1.0.2',
     'invenio-access>=1.0.0a11',
@@ -75,6 +75,7 @@ install_requires = [
     'invenio-pidstore>=1.0.0b1',
     'invenio-records>=1.0.0b1',
     'itsdangerous>=1.1.0',
+    'werkzeug>=0.14.1,<1.0.0',
     'WTForms>=2.0',
 ]
 
